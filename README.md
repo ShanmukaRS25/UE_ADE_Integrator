@@ -249,8 +249,6 @@ Each tool requires:
 2. Python validation logic
 3. Unreal execution handler
 
-See `/docs/contribution-guide.md`.
-
 # 📚 Design Principles
 
 * Tool-based LLM interaction
@@ -285,13 +283,6 @@ MIT License
 This project explores how LLMs can assist complex software systems safely.
 Unreal Engine is used as a representative large, stateful editor environment.
 The architecture is transferable to CAD, robotics simulation, digital twin systems, and other 3D platforms.
-
-
-# 👤 Author
-
-[Your Name]
-Python & ML Engineer
-Open-source contributor
 
 
 If you'd like next, I can:
