@@ -1,293 +1,120 @@
+# Unreal_MCP_Plugin
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/fc22d707-555c-41f2-a3c3-3a2de386d272" />
+
+
+> **Model Context Protocol (MCP) implementation for Unreal Engine 5.5.**
+> *Bridge the gap between AI Coding agents and the Unreal Editor.*
+
+## 📖 Table of Contents
+
+- [Introduction](#-introduction)
+- [Key Features](#-key-features)
+- [Architecture & MCP Integration](#-architecture--mcp-integration)
+- [Prerequisites](#-getting-started)
+- [MCP Tools & Commands](#-mcp-tools--commands)
+- [Contributing](#-contributing)
+
+---
+
+## 🚀 Introduction
 
-#  README.md
+**UnrealMCP** is an open-source plugin that integrates the **Model Context Protocol (MCP)** into Unreal Engine 5.5. It functions as a bridge, allowing external AI agents (like Claude, ChatGPT, or custom LLMs) to interact directly with the Unreal Editor.
 
-# LLM Tooling for Structured 3D Editor Workflows (Unreal Engine)
+This project enables AI to:
+*   **Inspect and Query** the current level and assets.
+*   **Manipulate Actors** (Spawn, Move, Delete).
+*   **Generate and Modify Blueprints** programmatically.
+*   **Edit Blueprint Graphs** by adding nodes, connections, and variables.
 
-An open-source framework that enables natural-language–driven automation inside Unreal Engine by converting LLM outputs into structured, deterministic editor actions.
+By standardizing the communication protocol, UnrealMCP opens the door for advanced AI-assisted game development workflows, automated testing, and intelligent editor tools.
 
-This project demonstrates how Large Language Models (LLMs) can safely assist complex visual editor workflows using a schema-constrained, tool-based execution model.
+---
 
-## 🚀 Overview
+## ✨ Key Features
 
-Modern LLMs are powerful, but directly allowing them to manipulate complex, stateful systems (like 3D editors) can be unsafe and non-deterministic.
+*   **TCP Socket Server**: Robust, non-blocking server running within the Unreal Editor to handle MCP requests.
+*   **Extensible Command System**: Modular architecture allowing easy addition of new commands.
+*   **Direct Editor Manipulation**:
+    *   Spawn and control actors.
+    *   Query level data and object properties.
+*   **Blueprint Automation**:
+    *   Create new Blueprint assets.
+    *   Add components and variables.
+    *   Compile Blueprints remotely.
+*   **Graph Editing**:
+    *   Add nodes, events, and function calls to Blueprint graphs.
+    *   Connect pins and structure logic flows.
 
-This project solves that problem by introducing:
+## 🏗 Architecture & MCP Integration
 
-* A **Python-based command server** that validates and structures LLM outputs
-* A **C++ Unreal Engine Editor Plugin** that executes only approved actions
-* A **schema-first tool architecture** to prevent hallucinated or unsafe operations
+UnrealMCP works by running a **TCP Server** inside the Unreal Editor via `UEpicUnrealMCPBridge`, which is an `UEditorSubsystem`. This ensures the server starts automatically when the editor launches and runs on the main game thread (via `AsyncTask` for thread safety) to interact with the Unreal API.
 
-Instead of allowing an LLM to “freely generate code,” the system:
+### How it works:
+1.  **Server Start**: `UEpicUnrealMCPBridge` initializes a TCP listener on port **55557** (default).
+2.  **Connection**: An external MCP client connects to `localhost:55557`.
+3.  **Command Handling**: JSON-formatted commands are received and routed to specific handlers:
+    *   `FEpicUnrealMCPEditorCommands`: Handles level and actor operations.
+    *   `FEpicUnrealMCPBlueprintCommands`: Handles Blueprint asset creation and modification.
+    *   `FEpicUnrealMCPBlueprintGraphCommands`: Handles low-level graph editing (nodes, pins).
+4.  **Execution**: Commands are executed on the Game Thread to ensure thread safety with Unreal's garbage collection and object management.
+5.  **Response**: The result (or error) is sent back to the client as a JSON response.
 
-1. Accepts natural language input
-2. Converts it into structured tool commands
-3. Validates against a strict schema
-4. Executes deterministic editor operations
+## 🏁 Getting Started
 
-## 🏗 System Architecture
+### Prerequisites
 
-```
-User (Natural Language)
-        ↓
-LLM (Cursor / Claude / API)
-        ↓
-MCP Tool Call
-        ↓
-Python Command Server (Validation Layer)
-        ↓
-HTTP / JSON
-        ↓
-Unreal Engine Editor Plugin (C++)
-        ↓
-Structured Asset Creation & Wiring
-```
+*   **Unreal Engine 5.5** or later.
+*   **Visual Studio 2022** (for C++ compilation).
+*   **Git** (optional, for cloning).
 
-### Core Principle
 
-> Separate AI reasoning from execution.
+## 🛠 MCP Tools & Commands
 
-The LLM suggests actions.
-The engine executes only validated, deterministic commands.
+UnrealMCP exposes a wide range of tools to external agents. Commands are sent as JSON objects with a `command` field and a `parameters` object.
 
-## ✨ Features
+### 🏠 Editor & Level Commands
+| Command | Description |
+| :--- | :--- |
+| `get_actors_in_level` | List all actors in the current level. |
+| `find_actors_by_name` | Find specific actors by their name or label. |
+| `spawn_actor` | Spawn a standard actor (e.g., StaticMesh, Light). |
+| `delete_actor` | Remove an actor from the level. |
+| `set_actor_transform` | Move, rotate, or scale an actor. |
+| `spawn_blueprint_actor` | Spawn an instance of a Blueprint asset. |
 
-* Natural language → structured editor actions
-* Schema-validated LLM output
-* Deterministic execution layer
-* Automated asset generation (AI controllers, state machines, behavior graphs)
-* Open-source, extensible tool architecture
-* Editor-only plugin (no runtime risk)
+### 📘 Blueprint Asset Commands
+| Command | Description |
+| :--- | :--- |
+| `create_blueprint` | Create a new Blueprint asset. |
+| `add_component_to_blueprint` | Add a component (Mesh, Light, etc.) to a BP. |
+| `compile_blueprint` | Compile a Blueprint to apply changes. |
+| `set_physics_properties` | Modify physics settings of a component. |
+| `set_static_mesh_properties` | Set the mesh asset for a StaticMeshComponent. |
+| `get_blueprint_variable_details` | Inspect variables within a Blueprint. |
+| `analyze_blueprint_graph` | Analyze the structure of a Blueprint graph. |
 
-## 📦 Repository Structure
+### 🕸 Blueprint Graph Commands
+| Command | Description |
+| :--- | :--- |
+| `add_blueprint_node` | Add a generic node to the graph. |
+| `connect_nodes` | Connect two pins together. |
+| `create_variable` | Create a new variable in the Blueprint. |
+| `add_event_node` | Add an event node (e.g., BeginPlay). |
+| `create_function` | Create a new function within the Blueprint. |
+| `set_node_property` | Modify properties of a graph node. |
 
-```
-/mcp-server
-    server.py
-    /tools
-    /schemas
-    requirements.txt
+---
 
-/unreal-plugin
-    /Source
-    MCP_AI_Plugin.uplugin
+## 🤝 Contributing
 
-/docs
-    architecture.md
-    contribution-guide.md
+**This project is currently in active development:** We are looking for co-developers to help expand the capabilities of Unreal Plugin!
 
+### How to Contribute
+1.  Fork the repository.
+2.  Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
-# 🛠 Installation & Setup
 
-## 1️⃣ Prerequisites
 
-### Required Software
-
-* Unreal Engine 5.6 (C++ project)
-* Visual Studio 2022 (Game Development with C++)
-* Python 3.11+
-* pip
-
-Optional:
-
-* Cursor AI / Claude Desktop
-* OpenAI / Anthropic API key
-
-## 2️⃣ Unreal Engine Setup
-
-### Step 1: Create Project
-
-1. Open Unreal Engine 5.6
-2. Select **Games → Third Person Template**
-3. Choose **C++**
-4. Name project: `UE_MCP_AI_Tools`
-
-### Step 2: Install Plugin
-
-1. Copy `unreal-plugin/MCP_AI_Plugin` into:
-
-YourProject/Plugins/
-
-2. Open Unreal Editor
-3. Enable the plugin under:
-
-   Edit → Plugins
-   ```
-4. Restart Editor
-
-
-### Step 3: Enable Required UE Modules
-
-Ensure the following are enabled:
-
-* AI Module
-* Gameplay Tasks
-* Editor Scripting Utilities
-* HTTP Server
-* JSON / JSON Utilities
-
-
-## 3️⃣ Python MCP Server Setup
-
-Navigate to:
-
-```
-cd mcp-server
-```
-
-Create virtual environment:
-
-```bash
-python -m venv venv
-source venv/Scripts/activate   # Windows
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-Run server:
-
-```bash
-uvicorn server:app --reload
-```
-
-Server runs at:
-
-```
-http://localhost:8000
-```
-
-
-## 🔐 Security & Validation
-
-The system enforces:
-
-* Strict JSON schema validation
-* Predefined tool whitelist
-* Deterministic command mapping
-* No arbitrary code execution
-
-The Unreal plugin executes only recognized actions such as:
-
-* CREATE_AI_CONTROLLER
-* CREATE_BLACKBOARD
-* CREATE_BEHAVIOR_TREE
-* ADD_BT_NODE
-* CONNECT_BT_NODES
-
-# 🧠 Example Workflow
-
-## User Prompt
-
-```
-Create a basic enemy AI that patrols between points and chases the player when detected.
-```
-
-
-## LLM Output (Structured Tool Call)
-
-```json
-{
-  "action": "CREATE_BEHAVIOR_TREE",
-  "name": "BT_Enemy"
-}
-```
-
-
-## Unreal Engine Result
-
-The system automatically:
-
-* Creates AI Controller class
-* Creates Blackboard with required keys
-* Creates Behavior Tree
-* Wires root sequence
-* Adds patrol & chase tasks
-
-All without manual UI configuration.
-
-
-# 🎯 Final Result
-
-After execution:
-
-* AI assets appear in Content Browser
-* Behavior Tree is fully structured
-* Blackboard keys are configured
-* AI controller references tree
-* Ready for in-editor testing
-
-Time saved compared to manual setup: significant for rapid prototyping.
-
-# 🧪 Testing
-
-* Schema validation tests
-* API contract tests
-* Editor command logging
-* Asset creation verification
-
-To run server tests:
-
-```bash
-pytest
-```
-
-# 🔄 Contribution Guide
-
-Contributors can:
-
-* Add new MCP tools
-* Extend Unreal command handlers
-* Improve validation schemas
-* Add new automation workflows
-
-Each tool requires:
-
-1. Schema definition
-2. Python validation logic
-3. Unreal execution handler
-
-# 📚 Design Principles
-
-* Tool-based LLM interaction
-* Deterministic execution
-* Human-in-the-loop automation
-* Clear separation of reasoning and action
-* Extensibility over complexity
-
-# ⚠️ Limitations
-
-* Editor-only (not runtime)
-* Requires Unreal C++ project
-* Limited to predefined tool actions
-* Not a general-purpose code generator
-
-# 🔮 Roadmap
-
-* Extended asset graph automation
-* Perception system setup
-* Batch workflow generation
-* Multi-engine abstraction layer
-* CLI interface for CI pipelines
-
-
-
-
-# 🤝 Why This Project Exists
-
-This project explores how LLMs can assist complex software systems safely.
-Unreal Engine is used as a representative large, stateful editor environment.
-The architecture is transferable to CAD, robotics simulation, digital twin systems, and other 3D platforms.
-
-
-If you'd like next, I can:
-
-* Make this README more startup-product style
-* Make it more research-focused
-* Add diagrams (Mermaid architecture graph)
-* Create a GitHub project description summary (short version)
-* Help you write a contribution guide
-
-Just tell me the direction.
