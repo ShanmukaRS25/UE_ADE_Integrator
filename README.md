@@ -273,9 +273,6 @@ Each tool requires:
 * CLI interface for CI pipelines
 
 
-# 📄 License
-
-MIT License
 
 
 # 🤝 Why This Project Exists
